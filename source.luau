@@ -40,14 +40,16 @@ function CallbackHub:CreateWindow(options)
     ScreenGui.DisplayOrder = 999
     ScreenGui.Parent = CoreGui
 
-    local MobileToggle = Instance.new("ImageButton")
+    local MobileToggle = Instance.new("TextButton")
     MobileToggle.Name = "MobileToggle"
     MobileToggle.Size = UDim2.new(0, 45, 0, 45)
     MobileToggle.Position = UDim2.new(0, 15, 0, 15)
     MobileToggle.BackgroundColor3 = Theme.Topbar
     MobileToggle.BackgroundTransparency = 0.2
-    MobileToggle.Image = "rbxassetid://79097765039209"
-    MobileToggle.ScaleType = Enum.ScaleType.Fit
+    MobileToggle.Text = "UI"
+    MobileToggle.TextColor3 = Theme.Text
+    MobileToggle.TextSize = 16
+    MobileToggle.Font = Enum.Font.Code
     MobileToggle.ZIndex = 999
     MobileToggle.Parent = ScreenGui
 
@@ -103,6 +105,7 @@ function CallbackHub:CreateWindow(options)
     if AutoSize then
         local function UpdateScale()
             local ViewportSize = workspace.CurrentCamera.ViewportSize
+            -- Если экран меньше 850px по ширине, то сжимаем UI
             if ViewportSize.X < 850 then
                 local scaleFactor = math.clamp(ViewportSize.X / 850, 0.55, 0.9)
                 MainScale.Scale = scaleFactor
@@ -364,6 +367,7 @@ function CallbackHub:CreateWindow(options)
         
         local notifData = {Frame = NotifFrame}
 
+        -- ЛИМИТ ДО 3-Х УВЕДОМЛЕНИЙ НА ЭКРАНЕ
         if #ActiveNotifications >= 3 then
             local oldest = table.remove(ActiveNotifications, 1)
             if oldest and oldest.Frame and oldest.Frame.Parent then
@@ -399,7 +403,8 @@ function CallbackHub:CreateWindow(options)
                     break
                 end
             end
-
+            
+            -- Если уведомление не было принудительно удалено из-за лимита
             if removedByTimer and NotifFrame and NotifFrame.Parent then
                 TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, NotifFrame.Position.Y.Scale, NotifFrame.Position.Y.Offset)}):Play()
                 task.delay(0.4, function() 

@@ -46,10 +46,9 @@ function CallbackHub:CreateWindow(options)
     MobileToggle.Position = UDim2.new(0, 15, 0, 15)
     MobileToggle.BackgroundColor3 = Theme.Topbar
     MobileToggle.BackgroundTransparency = 0.2
-    MobileToggle.Text = "UI"
-    MobileToggle.TextColor3 = Theme.Text
-    MobileToggle.TextSize = 16
-    MobileToggle.Font = Enum.Font.Code
+    MobileToggle.Image = "rbxassetid://79097765039209"
+    MobileToggle.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    MobileToggle.ScaleType = Enum.ScaleType.Fit
     MobileToggle.ZIndex = 999
     MobileToggle.Parent = ScreenGui
 

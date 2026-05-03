@@ -1,4 +1,5 @@
-local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.luau"))()
+local url = "https://raw.githubusercontent.com/dURLEAK/callback-hub/main/source.luau?nocache=" .. tostring(tick())
+local CallbackHub = loadstring(game:HttpGet(url))()
 
 local Window = CallbackHub:CreateWindow({
     Title = "My Epic Script",

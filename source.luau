@@ -850,8 +850,4 @@ function CallbackHub:CreateWindow(options)
     return WindowObj
 end
 
-local Window = CallbackHub:CreateWindow({
-    Title = "Callback Hub",
-    Font = Enum.Font.SourceSans,
-    ToggleKey = Enum.KeyCode.Insert
-})
+return CallbackHub

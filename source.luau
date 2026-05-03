@@ -40,14 +40,13 @@ function CallbackHub:CreateWindow(options)
     ScreenGui.DisplayOrder = 999
     ScreenGui.Parent = CoreGui
 
-    local MobileToggle = Instance.new("TextButton")
+    local MobileToggle = Instance.new("ImageButton")
     MobileToggle.Name = "MobileToggle"
     MobileToggle.Size = UDim2.new(0, 45, 0, 45)
     MobileToggle.Position = UDim2.new(0, 15, 0, 15)
     MobileToggle.BackgroundColor3 = Theme.Topbar
     MobileToggle.BackgroundTransparency = 0.2
     MobileToggle.Image = "rbxassetid://79097765039209"
-    MobileToggle.ImageColor3 = Color3.fromRGB(255, 255, 255)
     MobileToggle.ScaleType = Enum.ScaleType.Fit
     MobileToggle.ZIndex = 999
     MobileToggle.Parent = ScreenGui
@@ -400,7 +399,7 @@ function CallbackHub:CreateWindow(options)
                     break
                 end
             end
-            
+
             if removedByTimer and NotifFrame and NotifFrame.Parent then
                 TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, NotifFrame.Position.Y.Scale, NotifFrame.Position.Y.Offset)}):Play()
                 task.delay(0.4, function() 

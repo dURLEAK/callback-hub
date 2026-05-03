@@ -39,6 +39,48 @@ function CallbackHub:CreateWindow(options)
     ScreenGui.DisplayOrder = 999
     ScreenGui.Parent = CoreGui
 
+    local MobileToggle = Instance.new("TextButton")
+    MobileToggle.Name = "MobileToggle"
+    MobileToggle.Size = UDim2.new(0, 45, 0, 45)
+    MobileToggle.Position = UDim2.new(0, 15, 0, 15)
+    MobileToggle.BackgroundColor3 = Theme.Topbar
+    MobileToggle.BackgroundTransparency = 0.2
+    MobileToggle.Text = "UI"
+    MobileToggle.TextColor3 = Theme.Text
+    MobileToggle.TextSize = 16
+    MobileToggle.Font = Enum.Font.Code
+    MobileToggle.ZIndex = 999
+    MobileToggle.Parent = ScreenGui
+
+    Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(1, 0)
+    local MTStroke = Instance.new("UIStroke", MobileToggle)
+    MTStroke.Color = Theme.Stroke
+    MTStroke.Thickness = 1
+
+    local dragToggle = false
+    local dragStartToggle, startPosToggle
+
+    MobileToggle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragToggle = true
+            dragStartToggle = input.Position
+            startPosToggle = MobileToggle.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStartToggle
+            MobileToggle.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragToggle = false
+        end
+    end)
+
     local Main = Instance.new("Frame")
     Main.BackgroundColor3 = Theme.Background
     Main.BackgroundTransparency = 0.35
@@ -47,6 +89,10 @@ function CallbackHub:CreateWindow(options)
     Main.Active = true
     Main.Parent = ScreenGui
     Main.ClipsDescendants = true
+
+    MobileToggle.MouseButton1Click:Connect(function()
+        Main.Visible = not Main.Visible
+    end)
 
     Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
     local MainStroke = Instance.new("UIStroke", Main)
@@ -172,20 +218,21 @@ function CallbackHub:CreateWindow(options)
         end
     end)
 
+    -- Fixed dragging to support PC + Mobile Touch
     local dragStart, startPos, draggingUI
     Topbar.InputBegan:Connect(function(i) 
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
             draggingUI = true; dragStart = i.Position; startPos = Main.Position 
         end 
     end)
     UserInputService.InputChanged:Connect(function(i) 
-        if draggingUI and i.UserInputType == Enum.UserInputType.MouseMovement then 
+        if draggingUI and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
             local d = i.Position - dragStart 
             Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) 
         end 
     end)
     UserInputService.InputEnded:Connect(function(i) 
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingUI = false end 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggingUI = false end 
     end)
 
     local function ApplyCornerAndStroke(frame, radius)
@@ -538,17 +585,22 @@ function CallbackHub:CreateWindow(options)
                 callback(Value)
             end
 
+            -- Fixed slider dragging to support PC + Mobile Touch
             SliderBg.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     Dragging = true
                     Update(input)
                 end
             end)
             UserInputService.InputChanged:Connect(function(input)
-                if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then Update(input) end
+                if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
+                    Update(input) 
+                end
             end)
             UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+                    Dragging = false 
+                end
             end)
         end
 
@@ -850,4 +902,8 @@ function CallbackHub:CreateWindow(options)
     return WindowObj
 end
 
-return CallbackHub
+local Window = CallbackHub:CreateWindow({
+    Title = "Callback Hub",
+    Font = Enum.Font.SourceSans,
+    ToggleKey = Enum.KeyCode.Insert
+})

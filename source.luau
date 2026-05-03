@@ -182,6 +182,7 @@ function CallbackHub:CreateWindow(options)
     TabContainer.Position = UDim2.new(0, 0, 0, 10)
     TabContainer.BackgroundTransparency = 1
     TabContainer.ScrollBarThickness = 0
+    TabContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
     TabContainer.ZIndex = 2
     TabContainer.Parent = Sidebar
 
@@ -218,7 +219,6 @@ function CallbackHub:CreateWindow(options)
         end
     end)
 
-    -- Fixed dragging to support PC + Mobile Touch
     local dragStart, startPos, draggingUI
     Topbar.InputBegan:Connect(function(i) 
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
@@ -384,6 +384,7 @@ function CallbackHub:CreateWindow(options)
         Page.ScrollBarThickness = 3
         Page.ScrollBarImageColor3 = Theme.Scrollbar
         Page.BorderSizePixel = 0
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Page.Visible = isFirst
         Page.ZIndex = 2
         Page.Parent = PageContainer
@@ -585,7 +586,6 @@ function CallbackHub:CreateWindow(options)
                 callback(Value)
             end
 
-            -- Fixed slider dragging to support PC + Mobile Touch
             SliderBg.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     Dragging = true
@@ -902,8 +902,4 @@ function CallbackHub:CreateWindow(options)
     return WindowObj
 end
 
-local Window = CallbackHub:CreateWindow({
-    Title = "Callback Hub",
-    Font = Enum.Font.SourceSans,
-    ToggleKey = Enum.KeyCode.Insert
-})
+return CallbackHub

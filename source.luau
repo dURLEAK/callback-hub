@@ -29,6 +29,7 @@ function CallbackHub:CreateWindow(options)
     local TitleText = WindowOptions.Title or "Callback Hub"
     local MainFont = WindowOptions.Font or Enum.Font.SourceSans
     local ToggleKey = WindowOptions.ToggleKey or Enum.KeyCode.Insert
+    local AutoSize = WindowOptions.AutoSize == nil and true or WindowOptions.AutoSize -- Включено по умолчанию
 
     if CoreGui:FindFirstChild("CallbackHub") then
         CoreGui.CallbackHub:Destroy()
@@ -56,6 +57,8 @@ function CallbackHub:CreateWindow(options)
     local MTStroke = Instance.new("UIStroke", MobileToggle)
     MTStroke.Color = Theme.Stroke
     MTStroke.Thickness = 1
+    
+    local ToggleScale = Instance.new("UIScale", MobileToggle)
 
     local dragToggle = false
     local dragStartToggle, startPosToggle
@@ -71,7 +74,13 @@ function CallbackHub:CreateWindow(options)
     UserInputService.InputChanged:Connect(function(input)
         if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStartToggle
-            MobileToggle.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+            local currentScale = ToggleScale.Scale
+            MobileToggle.Position = UDim2.new(
+                startPosToggle.X.Scale, 
+                startPosToggle.X.Offset + (delta.X / currentScale), 
+                startPosToggle.Y.Scale, 
+                startPosToggle.Y.Offset + (delta.Y / currentScale)
+            )
         end
     end)
 
@@ -84,11 +93,33 @@ function CallbackHub:CreateWindow(options)
     local Main = Instance.new("Frame")
     Main.BackgroundColor3 = Theme.Background
     Main.BackgroundTransparency = 0.35
-    Main.Position = UDim2.new(0.5, -300, 0.5, -200)
+    -- Изменил AnchorPoint и Position для корректного масштабирования и сворачивания (Minimize)
+    Main.AnchorPoint = Vector2.new(0.5, 0) 
+    Main.Position = UDim2.new(0.5, 0, 0.5, -200) 
     Main.Size = UDim2.new(0, 600, 0, 400)
     Main.Active = true
     Main.Parent = ScreenGui
     Main.ClipsDescendants = true
+    
+    local MainScale = Instance.new("UIScale", Main)
+
+    -- Авторазмер (Адаптация под мобильные/маленькие экраны)
+    if AutoSize then
+        local function UpdateScale()
+            local ViewportSize = workspace.CurrentCamera.ViewportSize
+            -- Если экран меньше 850px по ширине, то сжимаем UI
+            if ViewportSize.X < 850 then
+                local scaleFactor = math.clamp(ViewportSize.X / 850, 0.55, 0.9)
+                MainScale.Scale = scaleFactor
+                ToggleScale.Scale = scaleFactor
+            else
+                MainScale.Scale = 1
+                ToggleScale.Scale = 1
+            end
+        end
+        workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
+        UpdateScale()
+    end
 
     MobileToggle.MouseButton1Click:Connect(function()
         Main.Visible = not Main.Visible
@@ -228,7 +259,13 @@ function CallbackHub:CreateWindow(options)
     UserInputService.InputChanged:Connect(function(i) 
         if draggingUI and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
             local d = i.Position - dragStart 
-            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y) 
+            local currentScale = MainScale.Scale
+            Main.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + (d.X / currentScale), 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + (d.Y / currentScale)
+            ) 
         end 
     end)
     UserInputService.InputEnded:Connect(function(i) 
@@ -576,6 +613,22 @@ function CallbackHub:CreateWindow(options)
             SliderFill.ZIndex = 3
             SliderFill.Parent = SliderBg
             Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(0, 3)
+            
+            -- ДОБАВЛЕНА ТОЧКА-ПОЛЗУНОК
+            local SliderDot = Instance.new("Frame")
+            SliderDot.Size = UDim2.new(0, 12, 0, 12)
+            SliderDot.AnchorPoint = Vector2.new(0.5, 0.5)
+            SliderDot.Position = UDim2.new(1, 0, 0.5, 0)
+            SliderDot.BackgroundColor3 = Theme.Accent
+            SliderDot.BorderSizePixel = 0
+            SliderDot.ZIndex = 4
+            SliderDot.Parent = SliderFill
+            Instance.new("UICorner", SliderDot).CornerRadius = UDim.new(1, 0)
+            
+            local DotStroke = Instance.new("UIStroke", SliderDot)
+            DotStroke.Color = Theme.Stroke
+            DotStroke.Thickness = 1
+            DotStroke.Transparency = 0.5
 
             local Dragging = false
             local function Update(input)

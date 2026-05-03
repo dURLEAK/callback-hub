@@ -1,4 +1,3 @@
-
 local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.lua"))()
 
 local Window = CallbackHub:CreateWindow({

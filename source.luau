@@ -29,7 +29,7 @@ function CallbackHub:CreateWindow(options)
     local TitleText = WindowOptions.Title or "Callback Hub"
     local MainFont = WindowOptions.Font or Enum.Font.SourceSans
     local ToggleKey = WindowOptions.ToggleKey or Enum.KeyCode.Insert
-    local AutoSize = WindowOptions.AutoSize == nil and true or WindowOptions.AutoSize -- Включено по умолчанию
+    local AutoSize = WindowOptions.AutoSize == nil and true or WindowOptions.AutoSize
 
     if CoreGui:FindFirstChild("CallbackHub") then
         CoreGui.CallbackHub:Destroy()
@@ -93,7 +93,6 @@ function CallbackHub:CreateWindow(options)
     local Main = Instance.new("Frame")
     Main.BackgroundColor3 = Theme.Background
     Main.BackgroundTransparency = 0.35
-    -- Изменил AnchorPoint и Position для корректного масштабирования и сворачивания (Minimize)
     Main.AnchorPoint = Vector2.new(0.5, 0) 
     Main.Position = UDim2.new(0.5, 0, 0.5, -200) 
     Main.Size = UDim2.new(0, 600, 0, 400)
@@ -103,11 +102,9 @@ function CallbackHub:CreateWindow(options)
     
     local MainScale = Instance.new("UIScale", Main)
 
-    -- Авторазмер (Адаптация под мобильные/маленькие экраны)
     if AutoSize then
         local function UpdateScale()
             local ViewportSize = workspace.CurrentCamera.ViewportSize
-            -- Если экран меньше 850px по ширине, то сжимаем UI
             if ViewportSize.X < 850 then
                 local scaleFactor = math.clamp(ViewportSize.X / 850, 0.55, 0.9)
                 MainScale.Scale = scaleFactor
@@ -368,6 +365,17 @@ function CallbackHub:CreateWindow(options)
         Instance.new("UICorner", ProgressBar).CornerRadius = UDim.new(0, 8)
         
         local notifData = {Frame = NotifFrame}
+
+        if #ActiveNotifications >= 3 then
+            local oldest = table.remove(ActiveNotifications, 1)
+            if oldest and oldest.Frame and oldest.Frame.Parent then
+                TweenService:Create(oldest.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, oldest.Frame.Position.Y.Scale, oldest.Frame.Position.Y.Offset)}):Play()
+                task.delay(0.3, function()
+                    if oldest.Frame then oldest.Frame:Destroy() end
+                end)
+            end
+        end
+
         table.insert(ActiveNotifications, notifData)
         
         local function UpdateLayout()
@@ -385,17 +393,22 @@ function CallbackHub:CreateWindow(options)
         TweenService:Create(ProgressBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 1, 0)}):Play()
         
         task.delay(duration, function()
+            local removedByTimer = false
             for i, v in ipairs(ActiveNotifications) do
                 if v == notifData then
                     table.remove(ActiveNotifications, i)
+                    removedByTimer = true
                     break
                 end
             end
-            TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, NotifFrame.Position.Y.Scale, NotifFrame.Position.Y.Offset)}):Play()
-            task.delay(0.4, function() 
-                NotifFrame:Destroy() 
-                UpdateLayout() 
-            end)
+            
+            if removedByTimer and NotifFrame and NotifFrame.Parent then
+                TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, NotifFrame.Position.Y.Scale, NotifFrame.Position.Y.Offset)}):Play()
+                task.delay(0.4, function() 
+                    if NotifFrame then NotifFrame:Destroy() end
+                    UpdateLayout() 
+                end)
+            end
         end)
     end
 
@@ -614,7 +627,6 @@ function CallbackHub:CreateWindow(options)
             SliderFill.Parent = SliderBg
             Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(0, 3)
             
-            -- ДОБАВЛЕНА ТОЧКА-ПОЛЗУНОК
             local SliderDot = Instance.new("Frame")
             SliderDot.Size = UDim2.new(0, 12, 0, 12)
             SliderDot.AnchorPoint = Vector2.new(0.5, 0.5)

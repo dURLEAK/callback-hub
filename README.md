@@ -83,19 +83,52 @@ DashBind:UpdateKey("F")
 ```
 AddConfig:
 ```lua
--- Save Function
-local function SaveConfig(name, flags)
-    writefile(name .. ".json", game:GetService("HttpService"):JSONEncode(flags))
+local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.luau"))()
+local HttpService = game:GetService("HttpService")
+
+local Config = {
+    Flags = {},     -- Stores the actual settings values
+    Elements = {},  -- Stores references to UI objects for syncing
+    FileName = "SurvivalConfig.json"
+}
+
+local function SaveConfig()
+    writefile(Config.FileName, HttpService:JSONEncode(Config.Flags))
+    print("Config saved successfully.")
 end
 
--- Load Function (requires :Set() patch)
-local function LoadConfig(name, elements, callback)
-    if isfile(name .. ".json") then
-        local data = game:GetService("HttpService"):JSONDecode(readfile(name .. ".json"))
-        for flag, value in pairs(data) do
-            if elements[flag] then
-                elements[flag]:Set(value) -- Requires the patched source provided earlier
+local function LoadConfig()
+    if isfile(Config.FileName) then
+        local success, content = pcall(readfile, Config.FileName)
+        if success then
+            local data = HttpService:JSONDecode(content)
+            for flag, val in pairs(data) do
+                Config.Flags[flag] = val
+                -- Update UI visual state
+                if Config.Elements[flag] and type(Config.Elements[flag].Set) == "function" then
+                    pcall(function() Config.Elements[flag]:Set(val) end)
+                end
             end
         end
     end
 end
+
+local Window = CallbackHub:CreateWindow({Title = "Survival Hub", ToggleKey = Enum.KeyCode.RightControl})
+local MainTab = Window:CreateTab("Settings")
+
+Config.Elements["Aimbot"] = MainTab:AddToggle("Aimbot Enabled", false, function(v)
+    Config.Flags["Aimbot"] = v
+end)
+
+Config.Elements["FOV"] = MainTab:AddSlider("FOV Size", 10, 120, 50, function(v)
+    Config.Flags["FOV"] = v
+end)
+
+Config.Elements["Mode"] = MainTab:AddDropdown("Farm Mode", {"Normal", "Fast"}, "Normal", function(v)
+    Config.Flags["Mode"] = v
+end)
+
+MainTab:AddButton("Save Settings", SaveConfig)
+MainTab:AddButton("Load Settings", LoadConfig)
+
+LoadConfig()

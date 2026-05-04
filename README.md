@@ -83,46 +83,79 @@ DashBind:UpdateKey("F")
 ```
 AddConfig:
 ```lua
+local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.luau"))()
 local HttpService = game:GetService("HttpService")
 
 local ConfigManager = {
-    Flags = {},       -- Where values are stored
-    Elements = {},    -- Where UI references are stored
-    FileName = "Survival.json"
+    Flags = {},
+    Elements = {},
+    FileName = "Default.json"
 }
 
 function ConfigManager:Save()
     writefile(self.FileName, HttpService:JSONEncode(self.Flags))
-    return true
 end
 
 function ConfigManager:Load()
     if isfile(self.FileName) then
-        local success, content = pcall(readfile, self.FileName)
-        if success then
-            local data = HttpService:JSONDecode(content)
-            for flag, value in pairs(data) do
-                self.Flags[flag] = value
-                -- Force sync the UI
-                if self.Elements[flag] and type(self.Elements[flag].Set) == "function" then
-                    pcall(function() self.Elements[flag]:Set(value) end)
+        local s, c = pcall(readfile, self.FileName)
+        if s then
+            local data = HttpService:JSONDecode(c)
+            for f, v in pairs(data) do
+                self.Flags[f] = v
+                if self.Elements[f] and type(self.Elements[f].Set) == "function" then
+                    pcall(function() self.Elements[f]:Set(v) end)
                 end
             end
-            return true
         end
     end
-    return false
 end
 
--- Use this instead of manual variables. 
--- Call this function when you create an element.
-function ConfigManager:Register(id, element, defaultValue, callback)
-    self.Elements[id] = element
-    self.Flags[id] = defaultValue
-    
-    -- Return a wrapped callback that updates flags automatically
-    return function(val)
-        self.Flags[id] = val
-        if callback then callback(val) end
+function ConfigManager:Register(id, def, cb)
+    self.Flags[id] = def
+    return function(v)
+        self.Flags[id] = v
+        if cb then cb(v) end
     end
 end
+
+local Window = CallbackHub:CreateWindow({
+    Title = "Callback Hub",
+    ToggleKey = Enum.KeyCode.RightControl
+})
+
+local MainTab = Window:CreateTab("Settings")
+
+ConfigManager.Elements["AutoFarm"] = MainTab:AddToggle("Auto Farm", false, 
+    ConfigManager:Register("AutoFarm", false, function(v)
+        print("AutoFarm:", v)
+    end)
+)
+
+ConfigManager.Elements["Speed"] = MainTab:AddSlider("Walk Speed", 16, 100, 16, 
+    ConfigManager:Register("Speed", 16, function(v)
+        print("Speed:", v)
+    end)
+)
+
+ConfigManager.Elements["Mode"] = MainTab:AddDropdown("Farm Mode", {"Normal", "Fast", "Extreme"}, "Normal", 
+    ConfigManager:Register("Mode", "Normal", function(v)
+        print("Mode:", v)
+    end)
+)
+
+ConfigManager.Elements["Target"] = MainTab:AddTextBox("Target Player", "None", 
+    ConfigManager:Register("Target", "None", function(v)
+        print("Target:", v)
+    end)
+)
+
+MainTab:AddButton("Save Config", function() 
+    ConfigManager:Save() 
+end)
+
+MainTab:AddButton("Load Config", function() 
+    ConfigManager:Load() 
+end)
+
+ConfigManager:Load()

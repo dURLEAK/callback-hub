@@ -83,79 +83,30 @@ DashBind:UpdateKey("F")
 ```
 AddConfig:
 ```lua
-local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.luau"))()
-local HttpService = game:GetService("HttpService")
+local ConfigName = "config"
 
-local ConfigManager = {
-    Flags = {},
-    Elements = {},
-    FileName = "Default.json"
-}
-
-function ConfigManager:Save()
-    writefile(self.FileName, HttpService:JSONEncode(self.Flags))
-end
-
-function ConfigManager:Load()
-    if isfile(self.FileName) then
-        local s, c = pcall(readfile, self.FileName)
-        if s then
-            local data = HttpService:JSONDecode(c)
-            for f, v in pairs(data) do
-                self.Flags[f] = v
-                if self.Elements[f] and type(self.Elements[f].Set) == "function" then
-                    pcall(function() self.Elements[f]:Set(v) end)
-                end
-            end
-        end
-    end
-end
-
-function ConfigManager:Register(id, def, cb)
-    self.Flags[id] = def
-    return function(v)
-        self.Flags[id] = v
-        if cb then cb(v) end
-    end
-end
-
-local Window = CallbackHub:CreateWindow({
-    Title = "Callback Hub",
-    ToggleKey = Enum.KeyCode.RightControl
-})
-
-local MainTab = Window:CreateTab("Settings")
-
-ConfigManager.Elements["AutoFarm"] = MainTab:AddToggle("Auto Farm", false, 
-    ConfigManager:Register("AutoFarm", false, function(v)
-        print("AutoFarm:", v)
-    end)
-)
-
-ConfigManager.Elements["Speed"] = MainTab:AddSlider("Walk Speed", 16, 100, 16, 
-    ConfigManager:Register("Speed", 16, function(v)
-        print("Speed:", v)
-    end)
-)
-
-ConfigManager.Elements["Mode"] = MainTab:AddDropdown("Farm Mode", {"Normal", "Fast", "Extreme"}, "Normal", 
-    ConfigManager:Register("Mode", "Normal", function(v)
-        print("Mode:", v)
-    end)
-)
-
-ConfigManager.Elements["Target"] = MainTab:AddTextBox("Target Player", "None", 
-    ConfigManager:Register("Target", "None", function(v)
-        print("Target:", v)
-    end)
-)
-
-MainTab:AddButton("Save Config", function() 
-    ConfigManager:Save() 
+Tab:AddTextBox("Config Name", "config", function(text)
+    ConfigName = text
 end)
 
-MainTab:AddButton("Load Config", function() 
-    ConfigManager:Load() 
+Tab:AddButton("Save Config", function()
+    local fileName = ConfigName .. ".json"
+    writefile(fileName, game:GetService("HttpService"):JSONEncode(Flags))
+    Window:Notify("System", "Saved to " .. fileName, 3)
+end)
+
+Tab:AddButton("Load Config", function()
+    local fileName = ConfigName .. ".json"
+    if isfile(fileName) then
+        local data = game:GetService("HttpService"):JSONDecode(readfile(fileName))
+        for i, v in pairs(data) do
+            Flags[i] = v
+            if Elements[i] then Elements[i]:Set(v) end
+        end
+        Window:Notify("System", "Loaded " .. fileName, 3)
+    else
+        Window:Notify("Error", "File not found!", 3)
+    end
 end)
 
 ConfigManager:Load()

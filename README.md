@@ -84,15 +84,36 @@ DashBind:UpdateKey("F")
 AddConfig:
 ```lua
 local ConfigName = "config"
+local ConfigDropdown
+
+local function GetFiles()
+    local files = {}
+    for _, v in pairs(listfiles("")) do
+        if v:match("%.json$") then
+            table.insert(files, v:gsub("%.json$", ""):gsub("^.*\\", ""):gsub("^.*/", ""))
+        end
+    end
+    if #files == 0 then table.insert(files, "config") end
+    return files
+end
 
 Tab:AddTextBox("Config Name", "config", function(text)
     ConfigName = text
+end)
+
+ConfigDropdown = Tab:AddDropdown("Select Config", GetFiles(), "config", function(selected)
+    ConfigName = selected
+end)
+
+Tab:AddButton("Refresh List", function()
+    ConfigDropdown:Refresh(GetFiles())
 end)
 
 Tab:AddButton("Save Config", function()
     local fileName = ConfigName .. ".json"
     writefile(fileName, game:GetService("HttpService"):JSONEncode(Flags))
     Window:Notify("System", "Saved to " .. fileName, 3)
+    ConfigDropdown:Refresh(GetFiles())
 end)
 
 Tab:AddButton("Load Config", function()
@@ -108,5 +129,3 @@ Tab:AddButton("Load Config", function()
         Window:Notify("Error", "File not found!", 3)
     end
 end)
-
-ConfigManager:Load()

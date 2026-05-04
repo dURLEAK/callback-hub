@@ -83,52 +83,46 @@ DashBind:UpdateKey("F")
 ```
 AddConfig:
 ```lua
-local CallbackHub = loadstring(game:HttpGet("https://raw.githubusercontent.com/dURLEAK/callback-hub/refs/heads/main/source.luau"))()
 local HttpService = game:GetService("HttpService")
 
-local Config = {
-    Flags = {},     -- Stores the actual settings values
-    Elements = {},  -- Stores references to UI objects for syncing
-    FileName = "SurvivalConfig.json"
+local ConfigManager = {
+    Flags = {},       -- Where values are stored
+    Elements = {},    -- Where UI references are stored
+    FileName = "Survival.json"
 }
 
-local function SaveConfig()
-    writefile(Config.FileName, HttpService:JSONEncode(Config.Flags))
-    print("Config saved successfully.")
+function ConfigManager:Save()
+    writefile(self.FileName, HttpService:JSONEncode(self.Flags))
+    return true
 end
 
-local function LoadConfig()
-    if isfile(Config.FileName) then
-        local success, content = pcall(readfile, Config.FileName)
+function ConfigManager:Load()
+    if isfile(self.FileName) then
+        local success, content = pcall(readfile, self.FileName)
         if success then
             local data = HttpService:JSONDecode(content)
-            for flag, val in pairs(data) do
-                Config.Flags[flag] = val
-                -- Update UI visual state
-                if Config.Elements[flag] and type(Config.Elements[flag].Set) == "function" then
-                    pcall(function() Config.Elements[flag]:Set(val) end)
+            for flag, value in pairs(data) do
+                self.Flags[flag] = value
+                -- Force sync the UI
+                if self.Elements[flag] and type(self.Elements[flag].Set) == "function" then
+                    pcall(function() self.Elements[flag]:Set(value) end)
                 end
             end
+            return true
         end
     end
+    return false
 end
 
-local Window = CallbackHub:CreateWindow({Title = "Survival Hub", ToggleKey = Enum.KeyCode.RightControl})
-local MainTab = Window:CreateTab("Settings")
-
-Config.Elements["Aimbot"] = MainTab:AddToggle("Aimbot Enabled", false, function(v)
-    Config.Flags["Aimbot"] = v
-end)
-
-Config.Elements["FOV"] = MainTab:AddSlider("FOV Size", 10, 120, 50, function(v)
-    Config.Flags["FOV"] = v
-end)
-
-Config.Elements["Mode"] = MainTab:AddDropdown("Farm Mode", {"Normal", "Fast"}, "Normal", function(v)
-    Config.Flags["Mode"] = v
-end)
-
-MainTab:AddButton("Save Settings", SaveConfig)
-MainTab:AddButton("Load Settings", LoadConfig)
-
-LoadConfig()
+-- Use this instead of manual variables. 
+-- Call this function when you create an element.
+function ConfigManager:Register(id, element, defaultValue, callback)
+    self.Elements[id] = element
+    self.Flags[id] = defaultValue
+    
+    -- Return a wrapped callback that updates flags automatically
+    return function(val)
+        self.Flags[id] = val
+        if callback then callback(val) end
+    end
+end

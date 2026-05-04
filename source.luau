@@ -105,7 +105,6 @@ function CallbackHub:CreateWindow(options)
     if AutoSize then
         local function UpdateScale()
             local ViewportSize = workspace.CurrentCamera.ViewportSize
-            -- Если экран меньше 850px по ширине, то сжимаем UI
             if ViewportSize.X < 850 then
                 local scaleFactor = math.clamp(ViewportSize.X / 850, 0.55, 0.9)
                 MainScale.Scale = scaleFactor
@@ -289,15 +288,6 @@ function CallbackHub:CreateWindow(options)
         ToggleKey = newKey
     end
 
-    function WindowObj:SetGlobalFont(newFont)
-        WindowObj.CurrentFont = newFont
-        for _, v in pairs(ScreenGui:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
-                v.Font = newFont
-            end
-        end
-    end
-
     function WindowObj:Notify(title, text, duration)
         duration = duration or 4.5
         local NotifFrame = Instance.new("Frame")
@@ -367,14 +357,11 @@ function CallbackHub:CreateWindow(options)
         
         local notifData = {Frame = NotifFrame}
 
-        -- ЛИМИТ ДО 3-Х УВЕДОМЛЕНИЙ НА ЭКРАНЕ
         if #ActiveNotifications >= 3 then
             local oldest = table.remove(ActiveNotifications, 1)
             if oldest and oldest.Frame and oldest.Frame.Parent then
                 TweenService:Create(oldest.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, oldest.Frame.Position.Y.Scale, oldest.Frame.Position.Y.Offset)}):Play()
-                task.delay(0.3, function()
-                    if oldest.Frame then oldest.Frame:Destroy() end
-                end)
+                task.delay(0.3, function() if oldest.Frame then oldest.Frame:Destroy() end end)
             end
         end
 
@@ -397,20 +384,11 @@ function CallbackHub:CreateWindow(options)
         task.delay(duration, function()
             local removedByTimer = false
             for i, v in ipairs(ActiveNotifications) do
-                if v == notifData then
-                    table.remove(ActiveNotifications, i)
-                    removedByTimer = true
-                    break
-                end
+                if v == notifData then table.remove(ActiveNotifications, i); removedByTimer = true; break end
             end
-            
-            -- Если уведомление не было принудительно удалено из-за лимита
             if removedByTimer and NotifFrame and NotifFrame.Parent then
                 TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Position = UDim2.new(1, 20, NotifFrame.Position.Y.Scale, NotifFrame.Position.Y.Offset)}):Play()
-                task.delay(0.4, function() 
-                    if NotifFrame then NotifFrame:Destroy() end
-                    UpdateLayout() 
-                end)
+                task.delay(0.4, function() if NotifFrame then NotifFrame:Destroy() end; UpdateLayout() end)
             end
         end)
     end
@@ -466,10 +444,7 @@ function CallbackHub:CreateWindow(options)
         end)
 
         local elementCounter = 0
-        local function GetOrder()
-            elementCounter = elementCounter + 1
-            return elementCounter
-        end
+        local function GetOrder() elementCounter = elementCounter + 1; return elementCounter end
 
         local TabObj = {}
         
@@ -576,6 +551,13 @@ function CallbackHub:CreateWindow(options)
             end)
             
             if default then callback(default) end
+
+            local ToggleObj = {}
+            function ToggleObj:Set(newState)
+                State = newState
+                UpdateToggle()
+            end
+            return ToggleObj
         end
 
         function TabObj:AddSlider(text, min, max, default, callback)
@@ -640,11 +622,6 @@ function CallbackHub:CreateWindow(options)
             SliderDot.Parent = SliderFill
             Instance.new("UICorner", SliderDot).CornerRadius = UDim.new(1, 0)
             
-            local DotStroke = Instance.new("UIStroke", SliderDot)
-            DotStroke.Color = Theme.Stroke
-            DotStroke.Thickness = 1
-            DotStroke.Transparency = 0.5
-
             local Dragging = false
             local function Update(input)
                 local scale = math.clamp((input.Position.X - SliderBg.AbsolutePosition.X) / SliderBg.AbsoluteSize.X, 0, 1)
@@ -656,20 +633,25 @@ function CallbackHub:CreateWindow(options)
 
             SliderBg.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    Dragging = true
-                    Update(input)
+                    Dragging = true; Update(input)
                 end
             end)
             UserInputService.InputChanged:Connect(function(input)
-                if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
-                    Update(input) 
-                end
+                if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then Update(input) end
             end)
             UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
-                    Dragging = false 
-                end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then Dragging = false end
             end)
+
+            local SliderObj = {}
+            function SliderObj:Set(newValue)
+                Value = math.clamp(tonumber(newValue) or min, min, max)
+                ValLabel.Text = tostring(Value)
+                local scale = math.clamp((Value - min) / (max - min), 0, 1)
+                TweenService:Create(SliderFill, TweenInfo.new(0.1), {Size = UDim2.new(scale, 0, 1, 0)}):Play()
+                callback(Value)
+            end
+            return SliderObj
         end
 
         function TabObj:AddTextBox(text, default, callback)
@@ -708,9 +690,14 @@ function CallbackHub:CreateWindow(options)
             TextBox.Parent = Frame
             ApplyCornerAndStroke(TextBox, 4)
 
-            TextBox.FocusLost:Connect(function()
-                callback(TextBox.Text)
-            end)
+            TextBox.FocusLost:Connect(function() callback(TextBox.Text) end)
+
+            local BoxObj = {}
+            function BoxObj:Set(newText)
+                TextBox.Text = tostring(newText)
+                callback(newText)
+            end
+            return BoxObj
         end
 
         function TabObj:AddDropdown(text, options, default, callback)
@@ -767,10 +754,7 @@ function CallbackHub:CreateWindow(options)
 
             local DropObj = {}
             function DropObj:Refresh(newOptions)
-                for _, child in ipairs(ItemsContainer:GetChildren()) do
-                    if child:IsA("TextButton") then child:Destroy() end
-                end
-                
+                for _, child in ipairs(ItemsContainer:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
                 for i, opt in ipairs(newOptions) do
                     local OptBtn = Instance.new("TextButton")
                     OptBtn.Size = UDim2.new(1, 0, 0, 30)
@@ -794,11 +778,8 @@ function CallbackHub:CreateWindow(options)
                 end
                 if Expanded then
                     Arrow.Text = "▲"
-                    local totalHeight = 36 + (#ItemsContainer:GetChildren() - 1) * 30
-                    TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, totalHeight)}):Play()
-                else
-                    Arrow.Text = "▼"
-                end
+                    TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 36 + (#ItemsContainer:GetChildren() - 1) * 30)}):Play()
+                else Arrow.Text = "▼" end
             end
 
             DropObj:Refresh(options)
@@ -809,6 +790,14 @@ function CallbackHub:CreateWindow(options)
                 local totalHeight = Expanded and (36 + (#ItemsContainer:GetChildren() - 1) * 30) or 36
                 TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, totalHeight)}):Play()
             end)
+            
+            function DropObj:Set(newValue)
+                Expanded = false
+                Arrow.Text = "▼"
+                Label.Text = text .. " : " .. tostring(newValue)
+                TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 36)}):Play()
+                callback(newValue)
+            end
             
             return DropObj
         end
@@ -892,7 +881,6 @@ function CallbackHub:CreateWindow(options)
                     Selected[opt] = not Selected[opt]
                     OptBtn.TextColor3 = Selected[opt] and Theme.Accent or Theme.TextDim
                     Label.Text = text .. " : " .. GetSelectedStr()
-                    
                     local ret = {}
                     for k, v in pairs(Selected) do if v then table.insert(ret, k) end end
                     callback(ret)
@@ -905,6 +893,22 @@ function CallbackHub:CreateWindow(options)
                 local totalHeight = Expanded and (36 + (#ItemsContainer:GetChildren() - 1) * 30) or 36
                 TweenService:Create(Frame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, totalHeight)}):Play()
             end)
+
+            local MultiDropObj = {}
+            function MultiDropObj:Set(newSelected)
+                Selected = {}
+                if type(newSelected) == "table" then
+                    for _, v in ipairs(newSelected) do Selected[v] = true end
+                end
+                for _, child in ipairs(ItemsContainer:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child.TextColor3 = Selected[child.Text] and Theme.Accent or Theme.TextDim
+                    end
+                end
+                Label.Text = text .. " : " .. GetSelectedStr()
+                callback(newSelected)
+            end
+            return MultiDropObj
         end
 
         function TabObj:AddKeybind(text, defaultKey, callback)
@@ -960,6 +964,12 @@ function CallbackHub:CreateWindow(options)
             local KbObj = {}
             function KbObj:UpdateKey(newKeyName)
                 BindBtn.Text = newKeyName
+            end
+            function KbObj:Set(newKey)
+                if typeof(newKey) == "EnumItem" then
+                    BindBtn.Text = newKey.Name
+                    callback(newKey)
+                end
             end
             return KbObj
         end

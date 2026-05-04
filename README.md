@@ -81,3 +81,21 @@ end)
 -- If you want to force-update the text label of the bind via script:
 DashBind:UpdateKey("F")
 ```
+AddConfig:
+```lua
+-- Save Function
+local function SaveConfig(name, flags)
+    writefile(name .. ".json", game:GetService("HttpService"):JSONEncode(flags))
+end
+
+-- Load Function (requires :Set() patch)
+local function LoadConfig(name, elements, callback)
+    if isfile(name .. ".json") then
+        local data = game:GetService("HttpService"):JSONDecode(readfile(name .. ".json"))
+        for flag, value in pairs(data) do
+            if elements[flag] then
+                elements[flag]:Set(value) -- Requires the patched source provided earlier
+            end
+        end
+    end
+end

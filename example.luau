@@ -25,6 +25,14 @@ local function Load()
     end
 end
 
+local function Reg(id, def, cb)
+    Config.Flags[id] = def
+    return function(v)
+        Config.Flags[id] = v
+        if cb then cb(v) end
+    end
+end
+
 local Window = CallbackHub:CreateWindow({
     Title = "Callback Hub",
     Font = Enum.Font.GothamMedium,
@@ -38,27 +46,23 @@ local ConfigTab = Window:CreateTab("Config")
 
 CombatTab:AddSection("Aimbot Settings")
 
-Config.Elements["Aimbot"] = CombatTab:AddToggle("Enable Aimbot", false, function(state)
-    Config.Flags["Aimbot"] = state
+Config.Elements["Aimbot"] = CombatTab:AddToggle("Enable Aimbot", false, Reg("Aimbot", false, function(state)
     print("Aimbot state: ", state)
-end)
+end))
 
-Config.Elements["Smoothness"] = CombatTab:AddSlider("Aimbot Smoothness", 1, 10, 5, function(val)
-    Config.Flags["Smoothness"] = val
+Config.Elements["Smoothness"] = CombatTab:AddSlider("Aimbot Smoothness", 1, 10, 5, Reg("Smoothness", 5, function(val)
     print("Smoothness: ", val)
-end)
+end))
 
-Config.Elements["HitPart"] = CombatTab:AddDropdown("Hit Part", {"Head", "Torso", "HumanoidRootPart"}, "Head", function(part)
-    Config.Flags["HitPart"] = part
+Config.Elements["HitPart"] = CombatTab:AddDropdown("Hit Part", {"Head", "Torso", "HumanoidRootPart"}, "Head", Reg("HitPart", "Head", function(part)
     print("Targeting: ", part)
-end)
+end))
 
 VisualsTab:AddSection("Player ESP")
 
-Config.Elements["ESP"] = VisualsTab:AddMultiDropdown("ESP Features", {"Tracer", "Box", "Skeleton", "Name"}, {"Box"}, function(selected)
-    Config.Flags["ESP"] = selected
+Config.Elements["ESP"] = VisualsTab:AddMultiDropdown("ESP Features", {"Tracer", "Box", "Skeleton", "Name"}, {"Box"}, Reg("ESP", {"Box"}, function(selected)
     print("ESP Features Updated!")
-end)
+end))
 
 MiscTab:AddLabel("Press Right Shift to hide this menu.")
 
@@ -66,10 +70,9 @@ MiscTab:AddButton("Send Test Notification", function()
     Window:Notify("Hello!", "This is a custom notification.", 3)
 end)
 
-Config.Elements["WS"] = MiscTab:AddTextBox("WalkSpeed Override", "16", function(txt)
-    Config.Flags["WS"] = txt
+Config.Elements["WS"] = MiscTab:AddTextBox("WalkSpeed Override", "16", Reg("WS", "16", function(txt)
     print("Set walkspeed to: ", txt)
-end)
+end))
 
 Config.Elements["Panic"] = MiscTab:AddKeybind("Panic Button (Kill Game)", Enum.KeyCode.End, function(key)
     game.Players.LocalPlayer:Kick("Panic button pressed.")
@@ -81,16 +84,7 @@ ConfigTab:AddTextBox("File Name", "config", function(t)
     Config.Name = t
 end)
 
-ConfigTab:AddButton("Save Configuration", function()
-    Save()
-    Window:Notify("Config", "Saved " .. Config.Name, 2)
-end)
-
-ConfigTab:AddButton("Load Configuration", function()
-    Load()
-    Window:Notify("Config", "Loaded " .. Config.Name, 2)
-end)
-
-Window:Notify("Loaded", "Callback Hub loaded successfully!", 4)
+ConfigTab:AddButton("Save Configuration", Save)
+ConfigTab:AddButton("Load Configuration", Load)
 
 Load()

@@ -241,9 +241,14 @@ function CallbackHub:CreateWindow(options)
 
     CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
+    -- Дебаунс для встроенной кнопки меню, чтобы не лагало
+    local lastSysToggle = 0
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == ToggleKey then
-            Main.Visible = not Main.Visible
+        if not gameProcessed and ToggleKey ~= Enum.KeyCode.Unknown and input.KeyCode == ToggleKey then
+            if tick() - lastSysToggle > 0.25 then
+                lastSysToggle = tick()
+                Main.Visible = not Main.Visible
+            end
         end
     end)
 
@@ -933,12 +938,15 @@ function CallbackHub:CreateWindow(options)
             Label.ZIndex = 2
             Label.Parent = Frame
 
+            local currentKey = defaultKey
+            local binding = false
+
             local BindBtn = Instance.new("TextButton")
             BindBtn.Size = UDim2.new(0, 100, 0, 28)
             BindBtn.Position = UDim2.new(1, -110, 0.5, -14)
             BindBtn.BackgroundColor3 = Theme.Background
             BindBtn.BackgroundTransparency = 0.2
-            BindBtn.Text = defaultKey.Name
+            BindBtn.Text = currentKey and currentKey.Name or "None"
             BindBtn.TextColor3 = Theme.Text
             BindBtn.TextSize = 14
             BindBtn.Font = WindowObj.CurrentFont
@@ -947,28 +955,46 @@ function CallbackHub:CreateWindow(options)
             BindBtn.Parent = Frame
             ApplyCornerAndStroke(BindBtn, 4)
             
-            local binding = false
             BindBtn.MouseButton1Click:Connect(function()
                 binding = true
                 BindBtn.Text = "..."
             end)
             
-            UserInputService.InputBegan:Connect(function(input)
-                if binding and input.UserInputType == Enum.UserInputType.Keyboard then
-                    binding = false
-                    BindBtn.Text = input.KeyCode.Name
-                    callback(input.KeyCode)
+            local lastBindPress = 0
+            UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if binding then
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        binding = false
+                        currentKey = input.KeyCode
+                        BindBtn.Text = currentKey.Name
+                    end
+                else
+                    if not gameProcessed and currentKey ~= Enum.KeyCode.Unknown and input.KeyCode == currentKey then
+                        if tick() - lastBindPress > 0.2 then
+                            lastBindPress = tick()
+                            callback(currentKey)
+                        end
+                    end
                 end
             end)
 
             local KbObj = {}
             function KbObj:UpdateKey(newKeyName)
-                BindBtn.Text = newKeyName
+                local s, k = pcall(function() return Enum.KeyCode[newKeyName] end)
+                if s and k then
+                    currentKey = k
+                    BindBtn.Text = currentKey.Name
+                elseif typeof(newKeyName) == "EnumItem" then
+                    currentKey = newKeyName
+                    BindBtn.Text = currentKey.Name
+                else
+                    BindBtn.Text = tostring(newKeyName)
+                end
             end
             function KbObj:Set(newKey)
                 if typeof(newKey) == "EnumItem" then
-                    BindBtn.Text = newKey.Name
-                    callback(newKey)
+                    currentKey = newKey
+                    BindBtn.Text = currentKey.Name
                 end
             end
             return KbObj
